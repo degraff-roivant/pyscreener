@@ -260,7 +260,7 @@ class DockingVirtualScreen:
         refss = [[self.prepare_and_run.remote(s) for s in sims] for sims in simulationss]
 
         resultss = [
-            ray.get(refs) for refs in tqdm(refss, desc="Docking", unit="ligand", smoothing=0.0)
+            ray.get(refs) for refs in tqdm(refss, "Docking", unit="ligand", smoothing=0.0)
         ]
 
         self.run_simulationss.extend(simulationss)
