@@ -55,7 +55,7 @@ def chunks(it: Iterable, size: int) -> Iterator[List]:
 
 def reduce_scores(
     S: np.ndarray, reduction: Reduction = Reduction.BEST, axis: int = -1, k: int = 1
-) -> Optional[float]:
+) -> np.ndarray:
     """Calculate the overall score of each ligand given all its scores against multiple receptors
 
     Parameters
@@ -84,13 +84,13 @@ def reduce_scores(
 
     if reduction == Reduction.BEST:
         return np.nanmin(S, axis)
-    elif reduction == Reduction.AVG:
+    if reduction == Reduction.AVG:
         return np.nanmean(S, axis)
-    elif reduction == Reduction.BOLTZMANN:
+    if reduction == Reduction.BOLTZMANN:
         S_e = np.exp(-S)
         Z = S_e / np.nansum(S_e, axis, keepdims=True)
         return np.nansum((S * Z), axis)
-    elif reduction == Reduction.TOP_K:
+    if reduction == Reduction.TOP_K:
         return np.nanmean(np.sort(S, axis)[..., :k], axis)
 
     raise ValueError(f"Invalid reduction specified! got: {reduction}")
