@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Union
 
 from pyscreener.docking.metadata import SimulationMetadata
 
+
 @dataclass(repr=True, eq=False)
 class SminaMetadata(SimulationMetadata):
     """

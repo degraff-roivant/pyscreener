@@ -25,7 +25,7 @@ from pyscreener.docking.smina.metadata import SminaMetadata
 
 if shutil.which("smina") is None:
     raise MissingExecutableError(
-        'Could not find `smina` on PATH! '
+        "Could not find `smina` on PATH! "
         "See https://github.com/coleygroup/pyscreener#adding-an-executable-to-your-path for more information."
     )
 
@@ -227,7 +227,7 @@ class SminaRunner(BatchDockingRunner):
         name = name or (Path(receptor).stem + "_" + Path(ligand).stem)
         extra = extra or []
 
-        out = path / f"smina_{name}_out.pdbqt"
+        out = path / f"smina_{name}_out.pdb"
         log = path / f"smina_{name}.log"
 
         argv = [
@@ -275,7 +275,9 @@ class SminaRunner(BatchDockingRunner):
                     if pattern.match(line) is not None:
                         break
                 score_lines = [line]
-                score_lines.extend(list(takewhile(lambda line: pattern.match(line) is not None, fid)))
+                score_lines.extend(
+                    list(takewhile(lambda line: pattern.match(line) is not None, fid))
+                )
         except OSError:
             return None
 
@@ -299,7 +301,9 @@ class SminaRunner(BatchDockingRunner):
         """
         try:
             with open(outfile) as fid:
-                score_lines = [line for line in fid.readlines() if "REMARK minimizedAffinity" in line]
+                score_lines = [
+                    line for line in fid.readlines() if "REMARK minimizedAffinity" in line
+                ]
         except OSError:
             return None
 
@@ -316,7 +320,7 @@ class SminaRunner(BatchDockingRunner):
         SminaRunner.batch_run(sims)
 
         return [sim.result for sim in sims]
-        
+
     @staticmethod
     def batch_prepare_ligand(sims: Sequence[Simulation]) -> bool:
         """Prepare a batch of ligands. NOTE: only works for SMILES strings"""
@@ -330,7 +334,7 @@ class SminaRunner(BatchDockingRunner):
             sim.metadata.prepared_ligand = sdf
 
         return True
-    
+
     @staticmethod
     def batch_run(sims: Sequence[Simulation]) -> Optional[list[float]]:
         p_ligand = Path(sims[0].metadata.prepared_ligand)
