@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -16,13 +17,13 @@ class Simulation:
     ---------
     smi : str
         the SMILES string of the ligand that will be docked
-    receptor : Optional[str]
-        the filepath of a receptor to prepare for docking
+    receptor : Path
+        the path of the receptor to use for docking
     metadata : CalculationMetadata
         the parameters with which to prepare and run the simulation
     name : str
         the name to use when creating the ligand input file and output files
-    input_file : Optional[str]
+    input_file : Optional[Path]
         the filepath of an arbitrary molecular input file containing a single molecule
     in_path : Union[str, Path]
         the path under which input will be placed
@@ -33,42 +34,41 @@ class Simulation:
         output scored conformations
     k : int
         the number of top scores to use if calculating an average
-    prepared_ligand : Optional[Union[str, Path]]
-    prepared_receptor : Optional[Union[str, Path]]
     result : Optional[Mapping]
         the result of the docking calculation. None if the calculation has not been performed yet.
 
     Parmeters
     ---------
     smi : str
-    receptor : Optional[str], default=None
+    receptor : PathLike
     metadata : CalculationMetadata
     name : str, default='ligand'
     input_file : Optional[str], default=None
-    in_path : Union[str, Path], default='.'
-    out_path : Union[str, Path], default='.'
+    in_path : PathLike, default='.'
+    out_path : PathLike, default='.'
     reduction : str, default=ScoreMode.BEST
     k : int, default=1
-    prepared_ligand : Optional[Union[str, Path]], default=None
-    prepared_receptor : Optional[Union[str, Path]], default=None
     result : Optional[Result], default=None
     """
 
     smi: str
-    receptor: str
+    receptor: Path
     center: Tuple[float, float, float]
     size: Tuple[float, float, float]
     metadata: SimulationMetadata
     ncpu: int = 1
     name: str = "ligand"
-    input_file: Optional[str] = None
-    in_path: Union[str, Path] = "."
-    out_path: Union[str, Path] = "."
+    input_file: Optional[Path] = None
+    in_path: Path = Path(".")
+    out_path: Path = Path(".")
     reduction: Reduction = Reduction.BEST
     k: int = 1
     result: Optional[Result] = None
 
     def __post_init__(self):
+        self.receptor = Path(self.receptor).absolute()
+        if self.input_file is not None:
+            self.input_file = Path(self.input_file)
         self.in_path = Path(self.in_path)
         self.out_path = Path(self.out_path)
 
