@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from pathlib import Path
+from os import PathLike
 import shlex
 from typing import Iterable, Optional, Union
 
@@ -11,12 +11,6 @@ class SminaMetadata(SimulationMetadata):
 
     Attributes
     ---------
-    center : Tuple[float, float, float]
-        the center of the docking box
-    size : Tuple[float, float, float]
-        the x-, y-, and z-radii of the docking box
-    ncpu : int
-        the number of cpu cores to use during the docking calculation
     exhaustiveness: int
         the exhaustiveness of the global search. Larger values are more exhaustive
     num_modes: int
@@ -30,14 +24,6 @@ class SminaMetadata(SimulationMetadata):
 
     Parmeters
     ---------
-    software : Software
-        the software that will be used
-    center : Tuple[float, float, float]
-        the center of the docking box
-    size : Tuple[float, float, float], default=(10., 10., 10.)
-        the x-, y-, and z-radii of the docking box
-    ncpu : int, default=1
-        the number of cpu cores to use during the docking calculation
     exhaustiveness: int, default=8
     num_modes: int, default=9
     energy_range: float, default=3.
@@ -52,8 +38,8 @@ class SminaMetadata(SimulationMetadata):
     num_modes: int = 9
     energy_range: float = 3.0
     extra: Union[str, Iterable[str]] = ""
-    prepared_ligand: Optional[Union[str, Path]] = None
-    prepared_receptor: Optional[Union[str, Path]] = None
+    prepared_ligand: Optional[PathLike] = None
+    prepared_receptor: Optional[PathLike] = None
 
     def __post_init__(self):
         self.extra = shlex.split(self.extra) if isinstance(self.extra, str) else self.extra
