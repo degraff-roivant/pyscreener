@@ -8,6 +8,7 @@ from pyscreener.docking.metadata import SimulationMetadata
 
 class DockingRunner(ABC):
     @classmethod
+    @property
     @abstractmethod
     def is_multithreaded(cls) -> bool:
         """Is this docking program able to leverage multiple CPU cores?"""

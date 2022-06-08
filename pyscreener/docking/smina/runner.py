@@ -32,6 +32,7 @@ if shutil.which("smina") is None:
 
 class SminaRunner(DockingRunner):
     @classmethod
+    @property
     def is_multithreaded(cls) -> bool:
         return True
 
@@ -45,7 +46,10 @@ class SminaRunner(DockingRunner):
     @staticmethod
     def prepare_receptor(sim: Simulation) -> Simulation:
         """Set the `prepared_receptor` attribute of the metadata appropriately"""
+        dest = Path(sim.in_path) / Path(sim.receptor).name
+
         sim.metadata.prepared_receptor = sim.receptor
+        shutil.copy(sim.receptor, str(dest))
 
         return sim
 
@@ -82,7 +86,7 @@ class SminaRunner(DockingRunner):
             whether the ligand preparation succeeded
         """
         sdf = Path(sim.in_path) / f"{sim.name}.sdf"
-        writer = Chem.SDWriter(sdf)
+        writer = Chem.SDWriter(str(sdf))
 
         mol = Chem.MolFromSmiles(sim.smi)
         if mol is None:
@@ -137,18 +141,17 @@ class SminaRunner(DockingRunner):
         name = f"{Path(sim.receptor).stem}_{ligand_name}"
 
         argv, _, log = SminaRunner.build_argv(
-            ligand=sim.metadata.prepared_ligand,
-            receptor=sim.metadata.prepared_receptor,
-            software=sim.metadata.software,
-            center=sim.center,
-            size=sim.size,
-            ncpu=sim.ncpu,
-            exhaustiveness=sim.metadata.exhaustiveness,
-            num_modes=sim.metadata.num_modes,
-            energy_range=sim.metadata.energy_range,
-            name=name,
-            path=Path(sim.out_path),
-            extra=sim.metadata.extra,
+            sim.metadata.prepared_ligand,
+            sim.metadata.prepared_receptor,
+            sim.center,
+            sim.size,
+            sim.ncpu,
+            sim.metadata.exhaustiveness,
+            sim.metadata.num_modes,
+            sim.metadata.energy_range,
+            name,
+            Path(sim.out_path),
+            sim.metadata.extra,
         )
 
         ret = sp.run(argv, stdout=sp.PIPE, stderr=sp.PIPE)
@@ -318,7 +321,7 @@ class SminaRunner(DockingRunner):
     def batch_prepare_ligand(sims: Sequence[Simulation]) -> bool:
         """Prepare a batch of ligands. NOTE: only works for SMILES strings"""
         sdf = Path(sims[0].in_path) / f"{sims[0].name}.sdf"
-        writer = Chem.SDWriter(sdf)
+        writer = Chem.SDWriter(str(sdf))
 
         for sim in zip(sims):
             mol = Chem.MolFromSmiles(sim.smi)

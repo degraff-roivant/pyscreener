@@ -45,6 +45,7 @@ for f in (VDW_DEFN_FILE, FLEX_DEFN_FILE, FLEX_DRIVE_FILE, DOCK):
 
 class DOCKRunner(DockingRunner):
     @classmethod
+    @property
     def is_multithreaded(cls) -> bool:
         return False
 
