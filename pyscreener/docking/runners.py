@@ -42,22 +42,23 @@ class DockingRunner(ABC):
         """Validate the metadata of the simulation. E.g., ensure that the specified software is
         installed for Vina-type screens."""
 
+
 class BatchDockingRunner(DockingRunner):
     @staticmethod
     @abstractmethod
     def batch_prepare_and_run(sims: Sequence[Simulation]) -> list[Optional[Result]]:
         pass
-    
+
     @staticmethod
     @abstractmethod
     def batch_prepare_ligand(sims: Sequence[Simulation]) -> bool:
         pass
-    
+
     @staticmethod
     @abstractmethod
     def batch_run(sims: Sequence[Simulation]) -> Optional[list[float]]:
         pass
-    
+
     @staticmethod
     @abstractmethod
     def batch_parse_logfile(logfile: PathLike):

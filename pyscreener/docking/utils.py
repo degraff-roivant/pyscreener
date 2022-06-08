@@ -1,5 +1,4 @@
 from enum import auto
-from typing import Iterable
 
 from pyscreener.utils import AutoName
 
@@ -14,4 +13,3 @@ def parse_optional_float(s: str):
         return float(s)
     except ValueError:
         return None
-        

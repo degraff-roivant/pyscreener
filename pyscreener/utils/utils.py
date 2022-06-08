@@ -1,3 +1,13 @@
+from __future__ import annotations
+
+from enum import Enum, auto
+import functools
+from itertools import islice
+from typing import Callable, Iterable, Iterator
+
+import numpy as np
+import ray
+
 __all__ = [
     "AutoName",
     "Reduction",
@@ -7,14 +17,6 @@ __all__ = [
     "reduce_scores",
     "run_on_all_nodes",
 ]
-
-from enum import Enum, auto
-import functools
-from itertools import islice
-from typing import Callable, Iterable, Iterator, List, Optional
-
-import numpy as np
-import ray
 
 
 class AutoName(Enum):
@@ -47,7 +49,7 @@ class FileFormat(AutoName):
     SMI = auto()
 
 
-def chunks(it: Iterable, size: int) -> Iterator[List]:
+def chunks(it: Iterable, size: int) -> Iterator[list]:
     """chunk an iterable into chunks of given size, with the last chunk being potentially smaller"""
     it = iter(it)
     return iter(lambda: list(islice(it, size)), [])

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from os import PathLike
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 from pyscreener.exceptions import InvalidResultError, NotSimulatedError
 from pyscreener.utils import Reduction
