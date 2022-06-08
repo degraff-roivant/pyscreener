@@ -18,7 +18,7 @@ from pyscreener.docking.utils import parse_optional_float
 from pyscreener.exceptions import MissingExecutableError
 from pyscreener.warnings import SimulationFailureWarning
 from pyscreener.docking.sim import Simulation
-from pyscreener.docking.runner import DockingRunner
+from pyscreener.docking.runners import BatchDockingRunner
 from pyscreener.docking.result import Result
 from pyscreener.docking.smina.metadata import SminaMetadata
 
@@ -30,7 +30,7 @@ if shutil.which("smina") is None:
     )
 
 
-class SminaRunner(DockingRunner):
+class SminaRunner(BatchDockingRunner):
     @classmethod
     @property
     def is_multithreaded(cls) -> bool:
@@ -46,10 +46,10 @@ class SminaRunner(DockingRunner):
     @staticmethod
     def prepare_receptor(sim: Simulation) -> Simulation:
         """Set the `prepared_receptor` attribute of the metadata appropriately"""
-        dest = Path(sim.in_path) / Path(sim.receptor).name
+        dest = Path(sim.in_path) / sim.receptor.name
 
-        sim.metadata.prepared_receptor = sim.receptor
-        shutil.copy(sim.receptor, str(dest))
+        shutil.copy(str(sim.receptor), str(dest))
+        sim.metadata.prepared_receptor = dest
 
         return sim
 
@@ -280,7 +280,7 @@ class SminaRunner(DockingRunner):
             return None
 
         scores = np.array([parse_optional_float(line.split()[1]) for line in score_lines])
-        return scores or None
+        return scores if len(scores) > 0 else None
 
     @staticmethod
     def parse_outfile(outfile: PathLike) -> Optional[np.ndarray]:
@@ -304,7 +304,7 @@ class SminaRunner(DockingRunner):
             return None
 
         scores = np.array([parse_optional_float(line.split()[3]) for line in score_lines])
-        return scores or None
+        return scores if len(scores) > 0 else None
 
     @staticmethod
     def validate_metadata(metadata: SminaMetadata):
@@ -323,7 +323,7 @@ class SminaRunner(DockingRunner):
         sdf = Path(sims[0].in_path) / f"{sims[0].name}.sdf"
         writer = Chem.SDWriter(str(sdf))
 
-        for sim in zip(sims):
+        for sim in sims:
             mol = Chem.MolFromSmiles(sim.smi)
             mol.SetProp("name", sim.name)
             writer.write(mol)
@@ -362,7 +362,7 @@ class SminaRunner(DockingRunner):
         if Ss is None:
             s = None
         else:
-            s = [utils.reduce_scores(s, sims[0].reduction, k=sims[0].k) for S in Ss]
+            s = [utils.reduce_scores(S, sims[0].reduction, k=sims[0].k) for S in Ss]
 
         for sim, score in zip(sims, s):
             sim.result = Result(

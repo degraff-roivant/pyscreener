@@ -15,7 +15,7 @@ from pyscreener import utils
 from pyscreener.exceptions import MissingExecutableError, ReceptorPreparationError
 from pyscreener.warnings import ChargeWarning, ConformerWarning, SimulationFailureWarning
 from pyscreener.docking.sim import Simulation
-from pyscreener.docking.runner import DockingRunner
+from pyscreener.docking.runners import DockingRunner
 from pyscreener.docking.result import Result
 from pyscreener.docking.vina.metadata import VinaMetadata
 from pyscreener.docking.vina.utils import Software

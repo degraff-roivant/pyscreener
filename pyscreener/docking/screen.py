@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 from copy import copy
 from dataclasses import replace
 from datetime import datetime
 from itertools import chain
+from os import PathLike
 from pathlib import Path
 import re
 import shutil
 import tarfile
 import tempfile
-from typing import Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Iterable, Optional, Sequence, Union
 
 import numpy as np
 import ray
@@ -17,7 +20,8 @@ from pyscreener.utils import Reduction, autobox, pdbfix, reduce_scores, run_on_a
 from pyscreener.docking.sim import Simulation
 from pyscreener.docking.metadata import SimulationMetadata
 from pyscreener.docking.result import Result
-from pyscreener.docking.runner import DockingRunner
+from pyscreener.docking.runners import BatchDockingRunner, DockingRunner
+from pyscreener.utils.utils import chunks
 
 
 class DockingVirtualScreen:
@@ -25,18 +29,19 @@ class DockingVirtualScreen:
         self,
         runner: DockingRunner,
         receptors: Optional[Iterable[str]],
-        center: Optional[Tuple],
-        size: Optional[Tuple],
+        center: Optional[tuple],
+        size: Optional[tuple],
         metadata_template: SimulationMetadata,
         pdbids: Optional[Sequence[str]] = None,
         docked_ligand_file: Optional[str] = None,
         buffer: float = 10.0,
         ncpu: int = 1,
         base_name: str = "ligand",
-        path: Union[str, Path] = ".",
+        path: PathLike = ".",
         reduction: Union[Reduction, str] = Reduction.BEST,
         receptor_reduction: Union[Reduction, str] = Reduction.BEST,
         k: int = 1,
+        batch_size: int = 16,
         verbose: int = 0,
     ):
         self.runner = runner
@@ -58,6 +63,7 @@ class DockingVirtualScreen:
         )
 
         self.k = k
+        self.batch_size = batch_size
 
         self.receptors = receptors or []
         if pdbids is not None:
@@ -80,8 +86,11 @@ class DockingVirtualScreen:
 
         self.tmp_dir = tempfile.gettempdir()
 
-        ncpu = ncpu if self.runner.is_multithreaded() else 1
-        self.prepare_and_run = ray.remote(num_cpus=ncpu)(self.runner.prepare_and_run)
+        ncpu = ncpu if self.runner.is_multithreaded else 1
+        if isinstance(self.runner, BatchDockingRunner):
+            self.prepare_and_run = ray.remote(num_cpus=ncpu)(self.runner.batch_prepare_and_run)
+        else:
+            self.prepare_and_run = ray.remote(num_cpus=ncpu)(self.runner.prepare_and_run)
 
         self.simulation_templates = [
             Simulation(
@@ -145,7 +154,7 @@ class DockingVirtualScreen:
         NOTE: this function is largely for convencience and pipelines setup() -> run() -> reduce()
         together. Values of `nan` in the returned array can indicate either an invalid ligand
         (could not be parsed by rdkit) or a failed simulation. If the distinction is meaningful to
-        you, then you should manually compare the List[List[Result]] from run() to the array from
+        you, then you should manually compare the list[list[Result]] from run() to the array from
         reduce()
 
         Parameters
@@ -194,7 +203,7 @@ class DockingVirtualScreen:
         return self.__tmp_dir
 
     @tmp_dir.setter
-    def tmp_dir(self, path: Union[str, Path]):
+    def tmp_dir(self, path: PathLike):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         tmp_dir = Path(path) / "pyscreener" / f"session_{timestamp}"
 
@@ -214,15 +223,15 @@ class DockingVirtualScreen:
         """Prepare the receptor file(s) for each of the simulation templates"""
         return [self.runner.prepare_receptor(template) for template in self.simulation_templates]
 
-    def results(self) -> List[Result]:
+    def results(self) -> list[Result]:
         """A flattened list of results from all of the completed simulations"""
         return list(chain(*self.resultss))
 
-    def simulations(self) -> List[Simulation]:
+    def simulations(self) -> list[Simulation]:
         """A flattened list of simulations from all of the completed simulations"""
         return list(chain(*self.run_simulationss))
 
-    def setup(self, sources: Iterable[str], smiles: bool = True) -> List[List[Simulation]]:
+    def setup(self, sources: Iterable[str], smiles: bool = True) -> list[list[Simulation]]:
         """Set up the simulations for the input sources
 
         Parameters
@@ -234,7 +243,7 @@ class DockingVirtualScreen:
 
         Returns
         -------
-        List[List[Simulation]]
+        list[list[Simulation]]
             the Simulation objects corresponding to the input ligands
         """
         if smiles:
@@ -256,21 +265,31 @@ class DockingVirtualScreen:
 
         return simss
 
-    def run(self, simulationss: List[List[Simulation]]) -> List[List[Result]]:
-        refss = [[self.prepare_and_run.remote(s) for s in sims] for sims in simulationss]
+    def run(self, simss: list[list[Simulation]]) -> list[list[Result]]:
+        if isinstance(self.runner, BatchDockingRunner):
+            refss = []
+            for simss_chunk in chunks(simss, self.batch_size):
+                simss_chunk_T = list(zip(*simss_chunk))
+                refss.append([self.prepare_and_run.remote(sims) for sims in simss_chunk_T])
 
-        resultss = [
-            ray.get(refs) for refs in tqdm(refss, "Docking", unit="ligand", smoothing=0.0)
-        ]
+            resultss = []
+            for refs in tqdm(refss, "Docking", unit="batch", smoothing=0.0):
+                resultss_chunk_T = ray.get(refs)
+                resultss.extend(list(zip(*resultss_chunk_T)))
+        else:
+            refss = [[self.prepare_and_run.remote(s) for s in sims] for sims in simss]
+            resultss = [
+                ray.get(refs) for refs in tqdm(refss, "Docking", unit="ligand", smoothing=0.0)
+            ]
 
-        self.run_simulationss.extend(simulationss)
+        self.run_simulationss.extend(simss)
         self.resultss.extend(resultss)
         self.num_ligands += len(resultss)
         self.num_simulations += len(list(chain(*resultss)))
 
         return resultss
 
-    def reduce(self, resultss: List[List[Result]], reduction: Optional[Reduction]):
+    def reduce(self, resultss: list[list[Result]], reduction: Optional[Reduction]):
         reduction = reduction or self.receptor_reduction
 
         S = np.array(
@@ -286,7 +305,7 @@ class DockingVirtualScreen:
         return reduce_scores(S, reduction, self.k)
 
     @run_on_all_nodes
-    def collect_files(self, path: Optional[Union[str, Path]] = None):
+    def collect_files(self, path: Optional[PathLike] = None):
         """Collect all the files from the local disks of the respective nodes
 
         For I/O purposes, input and output files for each simulation are
@@ -306,7 +325,7 @@ class DockingVirtualScreen:
 
         Parameters
         ----------
-        out_path : Optional[Union[str, Path]], default=None
+        out_path : Optional[PathLike], default=None
             the path under which the tar files should be collected to.
             If None, use self.path
         """

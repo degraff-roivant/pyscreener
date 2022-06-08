@@ -12,7 +12,7 @@ from pyscreener.exceptions import (
 from .sim import Simulation
 from .metadata import SimulationMetadata
 from .result import Result
-from .runner import DockingRunner
+from .runners import DockingRunner
 from .screen import DockingVirtualScreen
 from .utils import ScreenType
 
