@@ -39,10 +39,17 @@ class SminaRunner(BatchDockingRunner):
     @staticmethod
     def prepare_receptor(sim: Simulation) -> Simulation:
         """Set the `prepared_receptor` attribute of the metadata appropriately"""
-        dest = Path(sim.in_path) / sim.receptor.name
+        if sim.metadata.prepared_receptor is not None:
+            p_dest = Path(sim.in_path) / Path(sim.metadata.prepared_receptor).name
 
-        shutil.copy(str(sim.receptor), str(dest))
-        sim.metadata.prepared_receptor = dest
+            shutil.copy(str(sim.metadata.prepared_receptor), str(p_dest))
+            sim.metadata.prepared_receptor = p_dest
+            return
+
+        p_dest = Path(sim.in_path) / sim.receptor.name
+
+        shutil.copy(str(sim.receptor), str(p_dest))
+        sim.metadata.prepared_receptor = p_dest
 
         return sim
 

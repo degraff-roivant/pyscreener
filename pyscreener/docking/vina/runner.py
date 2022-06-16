@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from itertools import takewhile
 from pathlib import Path
 import re
@@ -47,6 +49,14 @@ class VinaRunner(DockingRunner):
         receptor_pdbqt : Optional[str]
             the filepath of the resulting PDBQT file. None if preparation failed
         """
+        if sim.metadata.prepared_receptor is not None:
+            src = Path(sim.metadata.prepared_receptor)
+            dest = Path(sim.in_path) / src.name
+
+            shutil.copy(str(src), str(dest))
+            sim.metadata.prepared_receptor = dest
+            return
+            
         name = Path(sim.receptor).with_suffix(".pdbqt").name
         receptor_pdbqt = Path(sim.in_path) / name
 
@@ -159,7 +169,7 @@ class VinaRunner(DockingRunner):
         return True
 
     @staticmethod
-    def run(sim: Simulation) -> Optional[List[float]]:
+    def run(sim: Simulation) -> Optional[list[float]]:
         """run the given ligand using the specified vina-type docking program and parameters
 
         If the simulation is not possible due to the prepared inputs not being set beforehand, do
@@ -181,18 +191,18 @@ class VinaRunner(DockingRunner):
         name = f"{Path(sim.receptor).stem}_{ligand_name}"
 
         argv, _, log = VinaRunner.build_argv(
-            ligand=sim.metadata.prepared_ligand,
-            receptor=sim.metadata.prepared_receptor,
-            software=sim.metadata.software,
-            center=sim.center,
-            size=sim.size,
-            ncpu=sim.ncpu,
-            exhaustiveness=sim.metadata.exhaustiveness,
-            num_modes=sim.metadata.num_modes,
-            energy_range=sim.metadata.energy_range,
-            name=name,
-            path=Path(sim.out_path),
-            extra=sim.metadata.extra,
+            sim.metadata.prepared_ligand,
+            sim.metadata.prepared_receptor,
+            sim.metadata.software,
+            sim.center,
+            sim.size,
+            sim.ncpu,
+            sim.metadata.exhaustiveness,
+            sim.metadata.num_modes,
+            sim.metadata.energy_range,
+            name,
+            Path(sim.out_path),
+            sim.metadata.extra,
         )
 
         ret = sp.run(argv, stdout=sp.PIPE, stderr=sp.PIPE)
