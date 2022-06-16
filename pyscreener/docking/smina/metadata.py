@@ -30,7 +30,7 @@ class SminaMetadata(SimulationMetadata):
     energy_range: float, default=3.
     extra : str, default=""
         a string containing the additional command line arguments to pass to a run of a vina-type
-        software for options not contained within the default metadata. E.g. for a run of Smina, extra="--force_cap ARG" or for PSOVina, extra="-w ARG"
+        software for options not contained within the default metadata. E.g. "--force_cap ARG"
     prepared_ligand: Optional[Union[str, Path]] = None,
     prepared_receptor: Optional[Union[str, Path]] = None
     """
@@ -38,6 +38,7 @@ class SminaMetadata(SimulationMetadata):
     exhaustiveness: int = 8
     num_modes: int = 9
     energy_range: float = 3.0
+    autobox_ligand: Optional[PathLike] = None
     extra: Union[str, Iterable[str]] = ""
     prepared_ligand: Optional[PathLike] = None
     prepared_receptor: Optional[PathLike] = None

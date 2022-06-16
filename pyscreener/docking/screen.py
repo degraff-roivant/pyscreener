@@ -44,8 +44,14 @@ class DockingVirtualScreen:
         batch_size: int = 16,
         verbose: int = 0,
     ):
+        if not ray.is_initialized():
+            try:
+                ray.init("auto")
+            except ConnectionError:
+                ray.init()
+
         self.runner = runner
-        self.runner.validate_metadata(metadata_template)
+        self.runner.check_environment(metadata_template)
 
         self.center = center
         self.size = size
@@ -109,12 +115,6 @@ class DockingVirtualScreen:
             )
             for receptor in self.receptors
         ]
-
-        if not ray.is_initialized():
-            try:
-                ray.init("auto")
-            except ConnectionError:
-                ray.init()
 
         self.simulation_templates = self.prepare_receptors()
 
@@ -266,6 +266,7 @@ class DockingVirtualScreen:
         return simss
 
     def run(self, simss: list[list[Simulation]]) -> list[list[Result]]:
+        import pdb; pdb.set_trace()
         if isinstance(self.runner, BatchDockingRunner):
             refss = []
             for simss_chunk in chunks(simss, self.batch_size):

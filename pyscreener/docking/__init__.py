@@ -65,7 +65,7 @@ def check_env(software, metadata: Optional[Dict] = None):
         valid_env = True
         print("  Validating metadata ... ", end=" ")
         metadata = build_metadata(software, metadata)
-        runner.validate_metadata(metadata)
+        runner.check_environment(metadata)
         print(Style.BRIGHT + Fore.GREEN + "PASS")
     except (
         MisconfiguredDirectoryError,

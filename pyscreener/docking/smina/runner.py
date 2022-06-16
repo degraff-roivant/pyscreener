@@ -23,13 +23,6 @@ from pyscreener.docking.result import Result
 from pyscreener.docking.smina.metadata import SminaMetadata
 
 
-if shutil.which("smina") is None:
-    raise MissingExecutableError(
-        "Could not find `smina` on PATH! "
-        "See https://github.com/coleygroup/pyscreener#adding-an-executable-to-your-path for more information."
-    )
-
-
 class SminaRunner(BatchDockingRunner):
     @classmethod
     @property
@@ -180,6 +173,8 @@ class SminaRunner(BatchDockingRunner):
         exhaustiveness: int = 8,
         num_modes: int = 9,
         energy_range: float = 3.0,
+        autobox_ligand: Optional[PathLike] = None,
+        autobox_add: float = 4.,
         name: Optional[str] = None,
         path: Path = Path("."),
         extra: Optional[list[str]] = None,
@@ -205,6 +200,11 @@ class SminaRunner(BatchDockingRunner):
         energy_range: float
             the maximum energy difference (in kcal/mol) between the best and worst output binding
             modes
+        autobox_ligand: Optional[PathLike], default=None
+            the ligand to autobox.
+            NOTE: ligand autoboxing will take priority over input docking box parameters!
+        autobox_add: float, default=4.
+            the amount of buffer to add when autoboxing a ligand
         extra : Optional[list[str]]
             additional command line arguments that will be passed to the docking calculation
         name : string, default=<receptor>_<ligand>)
@@ -234,20 +234,25 @@ class SminaRunner(BatchDockingRunner):
             "smina",
             f"--receptor={receptor}",
             f"--ligand={ligand}",
-            f"--center_x={center[0]}",
-            f"--center_y={center[1]}",
-            f"--center_z={center[2]}",
-            f"--size_x={size[0]}",
-            f"--size_y={size[1]}",
-            f"--size_z={size[2]}",
             f"--cpu={ncpu}",
             f"--out={out}",
             f"--log={log}",
             f"--exhaustiveness={exhaustiveness}",
             f"--num_modes={num_modes}",
             f"--energy_range={energy_range}",
-            *extra,
         ]
+        if autobox_ligand is not None:
+            argv.extend([f"--autobox_ligand={autobox_ligand}", f"--autobox_add={autobox_add}"])
+        else:
+            argv.extend([
+                f"--center_x={center[0]}",
+                f"--center_y={center[1]}",
+                f"--center_z={center[2]}",
+                f"--size_x={size[0]}",
+                f"--size_y={size[1]}",
+                f"--size_z={size[2]}"
+            ])
+        argv.extend(extra)
 
         return argv, out, log
 
@@ -311,8 +316,12 @@ class SminaRunner(BatchDockingRunner):
         return scores if len(scores) > 0 else None
 
     @staticmethod
-    def validate_metadata(metadata: SminaMetadata):
-        return
+    def check_environment(metadata: SminaMetadata):
+        if shutil.which("smina") is None:
+            raise MissingExecutableError(
+                "Could not find `smina` on PATH! "
+                "See https://github.com/coleygroup/pyscreener#adding-an-executable-to-your-path for more information."
+            )
 
     @staticmethod
     def batch_prepare_and_run(sims: Sequence[Simulation]) -> list[Optional[Result]]:
@@ -415,3 +424,9 @@ class SminaRunner(BatchDockingRunner):
         ]
 
         return scoress or None
+    
+@ray.remote
+def batch_prepare_and_run_(sims):
+    return SminaRunner.batch_prepare_and_run(sims)
+
+SminaRunner.batch_prepare_and_run_ = batch_prepare_and_run_
