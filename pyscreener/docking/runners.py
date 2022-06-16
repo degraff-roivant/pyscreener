@@ -39,8 +39,13 @@ class DockingRunner(ABC):
 
     @staticmethod
     def check_environment(md: SimulationMetadata):
-        """Validate the metadata of the simulation. E.g., ensure that the specified software is
-        installed for Vina-type screens."""
+        """Check that the environment is properly set up for the given runner and metadata.
+        
+        Raises
+        ------
+        InvalidEnvironmentError
+            if the environment is not set up properly
+        """
 
 
 class BatchDockingRunner(DockingRunner):

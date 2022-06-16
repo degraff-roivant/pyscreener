@@ -20,27 +20,12 @@ from pyscreener.docking import Simulation, DockingRunner, Result
 from pyscreener.docking.dock import utils
 from pyscreener.docking.dock.metadata import DOCKMetadata
 
-try:
-    DOCK6 = Path(os.environ["DOCK6"])
-except KeyError:
-    raise MissingEnvironmentVariableError(
-        "DOCK6 environment variable not set! "
-        "See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable "
-        "for more information."
-    )
-
-VDW_DEFN_FILE = DOCK6 / "parameters" / "vdw_AMBER_parm99.defn"
-FLEX_DEFN_FILE = DOCK6 / "parameters" / "flex.defn"
-FLEX_DRIVE_FILE = DOCK6 / "parameters" / "flex_drive.tbl"
-DOCK = DOCK6 / "bin" / "dock6"
-
-for f in (VDW_DEFN_FILE, FLEX_DEFN_FILE, FLEX_DRIVE_FILE, DOCK):
-    if not f.exists():
-        raise MisconfiguredDirectoryError(
-            f'$DOCK6 directory not configured properly! DOCK6 path is set as "{DOCK6}", but there '
-            f'is no "{f.name}" located under the "{f.parents[0].name}" directory. '
-            "See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information."
-        )
+DOCK6 = Path(os.environ.get("DOCK6"))
+if DOCK6 is not None:
+    VDW_DEFN_FILE = DOCK6 / "parameters" / "vdw_AMBER_parm99.defn"
+    FLEX_DEFN_FILE = DOCK6 / "parameters" / "flex.defn"
+    FLEX_DRIVE_FILE = DOCK6 / "parameters" / "flex_drive.tbl"
+    DOCK = DOCK6 / "bin" / "dock6"
 
 
 class DOCKRunner(DockingRunner):
@@ -156,6 +141,7 @@ class DOCKRunner(DockingRunner):
         except IOError:
             return False
 
+        # NOTE: change to rdkit
         try:
             mol.calccharges(model="gasteiger")
         except Exception:
@@ -236,7 +222,20 @@ class DOCKRunner(DockingRunner):
 
     @staticmethod
     def check_environment(metadata: DOCKMetadata):
-        return
+        if DOCK6 is None:
+            raise MissingEnvironmentVariableError(
+                "DOCK6 environment variable not set! "
+                "See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable "
+                "for more information."
+            )
+        for f in (VDW_DEFN_FILE, FLEX_DEFN_FILE, FLEX_DRIVE_FILE, DOCK):
+            if not f.exists():
+                raise MisconfiguredDirectoryError(
+                    f'$DOCK6 directory not configured properly! DOCK6 path is set as "{DOCK6}", '
+                    f'but there is no "{f.name}" located under the "{f.parents[0].name}" '
+                    "directory. See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information."
+                )
+        utils.check_env()
 
     @staticmethod
     def parse_logfile(outfile: Union[str, Path]) -> Optional[float]:

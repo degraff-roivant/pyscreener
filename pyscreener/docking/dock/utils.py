@@ -24,34 +24,30 @@ with resources.path("pyscreener.docking.dock", ".") as p_module:
     PREP_REC = p_module / "scripts" / "prep_rec.py2"
     WRITE_DMS = p_module / "scripts" / "write_dms.py2"
 
-try:
-    DOCK6 = Path(os.environ["DOCK6"])
-except KeyError:
-    raise MissingEnvironmentVariableError(
-        "DOCK6 environment variable not set! "
-        "See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information"
-    )
-
-SPHGEN = DOCK6 / "bin" / "sphgen_cpp"
-SPHERE_SELECTOR = DOCK6 / "bin" / "sphere_selector"
-SHOWBOX = DOCK6 / "bin" / "showbox"
-GRID = DOCK6 / "bin" / "grid"
-VDW_DEFN_FILE = DOCK6 / "parameters" / "vdw_AMBER_parm99.defn"
-
-for f in (SPHGEN, SPHERE_SELECTOR, SHOWBOX, GRID, VDW_DEFN_FILE):
-    if not f.exists():
-        raise MisconfiguredDirectoryError(
-            "DOCK6 directory not configured properly! "
-            f'DOCK6 path is set as "{DOCK6}", but there is no '
-            f'"{f.name}" located in the "{f.parents[0].name}" subdirectory '
-            "under the DOCK6 path. See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information"
-        )
+DOCK6 = Path(os.environ.get("DOCK6"))
+if DOCK6 is not None:
+    SPHGEN = DOCK6 / "bin" / "sphgen_cpp"
+    SPHERE_SELECTOR = DOCK6 / "bin" / "sphere_selector"
+    SHOWBOX = DOCK6 / "bin" / "showbox"
+    GRID = DOCK6 / "bin" / "grid"
+    VDW_DEFN_FILE = DOCK6 / "parameters" / "vdw_AMBER_parm99.defn"
 
 
 class SphereMode(AutoName):
     BOX = auto()
     LARGEST = auto()
     LIGAND = auto()
+
+    
+def check_env():
+    for f in (SPHGEN, SPHERE_SELECTOR, SHOWBOX, GRID, VDW_DEFN_FILE):
+        if not f.exists():
+            raise MisconfiguredDirectoryError(
+                "DOCK6 directory not configured properly! "
+                f'DOCK6 path is set as "{DOCK6}", but there is no '
+                f'"{f.name}" located in the "{f.parents[0].name}" subdirectory '
+                "under the DOCK6 path. See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information"
+            )
 
 
 def prepare_mol2(receptor: str, path: str = ".") -> str:

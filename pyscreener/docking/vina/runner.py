@@ -20,6 +20,7 @@ from pyscreener.docking.result import Result
 from pyscreener.docking.vina.metadata import VinaMetadata
 from pyscreener.docking.vina.utils import Software
 
+
 class VinaRunner(DockingRunner):
     @classmethod
     def is_multithreaded(cls) -> bool:

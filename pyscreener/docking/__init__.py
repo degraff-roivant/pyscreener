@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from colorama import init, Fore, Style
 
-from pyscreener.exceptions import InvalidEnvironmentError, UnsupportedSoftwareError
+from ..exceptions import InvalidEnvironmentError, UnsupportedSoftwareError
 from .sim import Simulation
 from .metadata import SimulationMetadata
 from .result import Result
@@ -11,7 +11,7 @@ from .runners import DockingRunner
 from .screen import DockingVirtualScreen
 from .utils import ScreenType
 
-init(autoreset=True)
+init(True)
 
 
 def build_metadata(software: str, metadata: Optional[Dict] = None) -> SimulationMetadata:
@@ -32,7 +32,7 @@ def build_metadata(software: str, metadata: Optional[Dict] = None) -> Simulation
         d_md.update((k, metadata[k]) for k in d_md.keys() & metadata.keys())
 
         return SminaMetadata(**d_md)
-        
+
     if software.lower() in ("dock", "dock6", "ucsfdock"):
         from pyscreener.docking.dock.metadata import DOCKMetadata
 
