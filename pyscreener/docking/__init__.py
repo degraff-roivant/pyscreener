@@ -10,52 +10,54 @@ from .result import Result
 from .runners import DockingRunner
 from .screen import DockingVirtualScreen
 from .utils import ScreenType
+from . import vina, smina, dock
 
 init(True)
 
+VALID_SOFTWARE = {"vina", "qvina", "psovina", "smina", "dock", "dock6", "ucsfdock"}
 
 def build_metadata(software: str, metadata: Optional[Dict] = None) -> SimulationMetadata:
+    software_ = software.lower()
     metadata = metadata or {}
 
-    if software.lower() in ("vina", "qvina", "psovina"):
-        from pyscreener.docking.vina import VinaMetadata
-
-        d_md = asdict(VinaMetadata())
+    if software_ in ("vina", "qvina", "psovina"):
+        d_md = asdict(vina.VinaMetadata())
         d_md.update((k, metadata[k]) for k in d_md.keys() & metadata.keys())
 
-        return VinaMetadata(**d_md)
+        return vina.VinaMetadata(**d_md)
 
-    if software.lower() == "smina":
-        from pyscreener.docking.smina import SminaMetadata
-
-        d_md = asdict(SminaMetadata())
+    if software_ == "smina":
+        d_md = asdict(smina.SminaMetadata())
         d_md.update((k, metadata[k]) for k in d_md.keys() & metadata.keys())
 
-        return SminaMetadata(**d_md)
+        return smina.SminaMetadata(**d_md)
 
-    if software.lower() in ("dock", "dock6", "ucsfdock"):
-        from pyscreener.docking.dock.metadata import DOCKMetadata
-
-        d_md = asdict(DOCKMetadata())
+    if software_ in ("dock", "dock6", "ucsfdock"):
+        d_md = asdict(dock.DOCKMetadata())
         d_md.update((k, metadata[k]) for k in d_md.keys() & metadata.keys())
 
-        return DOCKMetadata(**d_md)
+        return dock.DOCKMetadata(**d_md)
 
-    raise UnsupportedSoftwareError(f'Unrecognized screen type: "{software}"')
+    raise UnsupportedSoftwareError(
+        f'Unrecognized screen type! got: "{software}. Expected one of {VALID_SOFTWARE}."'
+    )
 
 
 def get_runner(software: str) -> DockingRunner:
-    if software.lower() in ("vina", "qvina", "smina", "psovina"):
-        from pyscreener.docking.vina import VinaRunner
+    software_ = software.lower()
 
-        return VinaRunner
+    if software_ == "smina":
+        return smina.SminaRunner
 
-    if software.lower() in ("dock", "dock6", "ucsfdock"):
-        from pyscreener.docking.dock import DOCKRunner
+    if software_ in ("vina", "qvina", "psovina"):
+        return vina.VinaRunner
 
-        return DOCKRunner
+    if software_ in ("dock", "dock6", "ucsfdock"):
+        return dock.DOCKRunner
 
-    raise UnsupportedSoftwareError(f'Unrecognized screen type: "{software}"')
+    raise UnsupportedSoftwareError(
+        f'Unrecognized screen type! got: "{software}. Expected one of {VALID_SOFTWARE}."'
+    )
 
 
 def check_env(software, metadata: Optional[Dict] = None):
