@@ -1,4 +1,5 @@
 from enum import auto
+
 from pyscreener.utils import AutoName
 
 

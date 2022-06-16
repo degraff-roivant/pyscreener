@@ -2,19 +2,19 @@ class BadPDBFileError(Exception):
     pass
 
 
-class MissingExecutableError(Exception):
+class InvalidEnvironmentError(Exception):
     pass
 
 
-class MissingEnvironmentVariableError(Exception):
+class MissingExecutableError(InvalidEnvironmentError):
     pass
 
 
-class MissingFileError(Exception):
+class MissingEnvironmentVariableError(InvalidEnvironmentError):
     pass
 
 
-class MisconfiguredDirectoryError(Exception):
+class MisconfiguredDirectoryError(InvalidEnvironmentError):
     pass
 
 

@@ -3,12 +3,7 @@ from typing import Dict, Optional
 
 from colorama import init, Fore, Style
 
-from pyscreener.exceptions import (
-    MisconfiguredDirectoryError,
-    MissingEnvironmentVariableError,
-    MissingExecutableError,
-    UnsupportedSoftwareError,
-)
+from pyscreener.exceptions import InvalidEnvironmentError, UnsupportedSoftwareError
 from .sim import Simulation
 from .metadata import SimulationMetadata
 from .result import Result
@@ -22,7 +17,7 @@ init(autoreset=True)
 def build_metadata(software: str, metadata: Optional[Dict] = None) -> SimulationMetadata:
     metadata = metadata or {}
 
-    if software.lower() in ("vina", "qvina", "smina", "psovina"):
+    if software.lower() in ("vina", "qvina", "psovina"):
         from pyscreener.docking.vina import VinaMetadata
 
         d_md = asdict(VinaMetadata())
@@ -30,6 +25,14 @@ def build_metadata(software: str, metadata: Optional[Dict] = None) -> Simulation
 
         return VinaMetadata(**d_md)
 
+    if software.lower() == "smina":
+        from pyscreener.docking.smina import SminaMetadata
+
+        d_md = asdict(SminaMetadata())
+        d_md.update((k, metadata[k]) for k in d_md.keys() & metadata.keys())
+
+        return SminaMetadata(**d_md)
+        
     if software.lower() in ("dock", "dock6", "ucsfdock"):
         from pyscreener.docking.dock.metadata import DOCKMetadata
 
@@ -67,12 +70,7 @@ def check_env(software, metadata: Optional[Dict] = None):
         metadata = build_metadata(software, metadata)
         runner.check_environment(metadata)
         print(Style.BRIGHT + Fore.GREEN + "PASS")
-    except (
-        MisconfiguredDirectoryError,
-        MissingEnvironmentVariableError,
-        MissingExecutableError,
-        UnsupportedSoftwareError,
-    ):
+    except (InvalidEnvironmentError, UnsupportedSoftwareError):
         print(Style.BRIGHT + Fore.RED + "FAIL")
         if not valid_env:
             print("Environment not set up properly!", end=" ")
