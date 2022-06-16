@@ -20,13 +20,6 @@ from pyscreener.docking.result import Result
 from pyscreener.docking.vina.metadata import VinaMetadata
 from pyscreener.docking.vina.utils import Software
 
-if shutil.which("prepare_receptor") is None:
-    raise MissingExecutableError(
-        'Could not find "prepare_receptor" on PATH! '
-        "See https://github.com/coleygroup/pyscreener#adding-an-executable-to-your-path for more information."
-    )
-
-
 class VinaRunner(DockingRunner):
     @classmethod
     def is_multithreaded(cls) -> bool:
@@ -367,7 +360,13 @@ class VinaRunner(DockingRunner):
         return scores or None
 
     @staticmethod
-    def validate_metadata(metadata: VinaMetadata):
+    def check_environment(metadata: VinaMetadata):
+        if shutil.which("prepare_receptor") is None:
+            raise MissingExecutableError(
+                'Could not find "prepare_receptor" on PATH! '
+                "See https://github.com/coleygroup/pyscreener#adding-an-executable-to-your-path for more information."
+            )
+
         if shutil.which(metadata.software.value) is None:
             raise MissingExecutableError(
                 f'Could not find "{metadata.software.value}" on PATH! '

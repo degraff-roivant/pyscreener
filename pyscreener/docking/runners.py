@@ -38,7 +38,7 @@ class DockingRunner(ABC):
         rather than the scores of the conformers"""
 
     @staticmethod
-    def validate_metadata(md: SimulationMetadata):
+    def check_environment(md: SimulationMetadata):
         """Validate the metadata of the simulation. E.g., ensure that the specified software is
         installed for Vina-type screens."""
 

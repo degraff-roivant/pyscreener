@@ -235,7 +235,7 @@ class DOCKRunner(DockingRunner):
         return scores
 
     @staticmethod
-    def validate_metadata(metadata: DOCKMetadata):
+    def check_environment(metadata: DOCKMetadata):
         return
 
     @staticmethod
