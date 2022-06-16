@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess as sp
 from typing import List, Mapping, Optional, Tuple, Union
 import warnings
@@ -55,19 +56,36 @@ class DOCKRunner(DockingRunner):
         -------
         Simulation
         """
-        in_path = sim.in_path / "receptors"
-        in_path.mkdir(parents=True, exist_ok=True)
+        p_in_path = sim.in_path / "receptors"
+        p_in_path.mkdir(parents=True, exist_ok=True)
+
+        if sim.metadata.prepared_receptor is not None:
+            rec_sph, grid_stem = sim.metadata.prepared_ligand
+            p_rec_sph = Path(rec_sph)
+            p_grid_stem = Path(grid_stem)
+
+            rec_sph_new = str(p_in_path / p_rec_sph.name)
+            grid_stem_new = str(p_in_path / p_grid_stem.name)
+
+            shutil.copy(rec_sph, str(rec_sph_new))
+
+            for p in p_grid_stem.parent.glob(f"{p_grid_stem.name}*"):
+                shutil.copy(str(p), str(p_in_path / p.name))
+
+            sim.metadata.prepared_receptor = rec_sph_new, grid_stem_new
+            
+            return
 
         try:
-            rec_mol2 = utils.prepare_mol2(sim.receptor, in_path)
-            rec_pdb = utils.prepare_pdb(sim.receptor, in_path)
-            rec_dms = utils.prepare_dms(rec_pdb, sim.metadata.probe_radius, in_path)
+            rec_mol2 = utils.prepare_mol2(sim.receptor, p_in_path)
+            rec_pdb = utils.prepare_pdb(sim.receptor, p_in_path)
+            rec_dms = utils.prepare_dms(rec_pdb, sim.metadata.probe_radius, p_in_path)
             rec_sph = utils.prepare_sph(
                 rec_dms,
                 sim.metadata.steric_clash_dist,
                 sim.metadata.min_radius,
                 sim.metadata.max_radius,
-                in_path,
+                p_in_path,
             )
             rec_sph = utils.select_spheres(
                 rec_sph,
@@ -76,7 +94,7 @@ class DOCKRunner(DockingRunner):
                 sim.size,
                 sim.metadata.docked_ligand_file,
                 sim.metadata.buffer,
-                in_path,
+                p_in_path,
             )
             rec_box = utils.prepare_box(
                 rec_sph,
@@ -84,9 +102,9 @@ class DOCKRunner(DockingRunner):
                 sim.size,
                 sim.metadata.enclose_spheres,
                 sim.metadata.buffer,
-                in_path,
+                p_in_path,
             )
-            grid_stem = utils.prepare_grid(rec_mol2, rec_box, in_path, sim.metadata.grid_params)
+            grid_stem = utils.prepare_grid(rec_mol2, rec_box, p_in_path, sim.metadata.grid_params)
         except ReceptorPreparationError:
             raise
             # return None  # should think about whether to handle or just raise
@@ -231,14 +249,14 @@ class DOCKRunner(DockingRunner):
         for f in (VDW_DEFN_FILE, FLEX_DEFN_FILE, FLEX_DRIVE_FILE, DOCK):
             if not f.exists():
                 raise MisconfiguredDirectoryError(
-                    f'$DOCK6 directory not configured properly! DOCK6 path is set as "{DOCK6}", '
+                    f'`$DOCK6` directory not configured properly! `$DOCK6` is set to "{DOCK6}", '
                     f'but there is no "{f.name}" located under the "{f.parents[0].name}" '
                     "directory. See https://github.com/coleygroup/pyscreener#specifying-an-environment-variable for more information."
                 )
         utils.check_env()
 
     @staticmethod
-    def parse_logfile(outfile: Union[str, Path]) -> Optional[float]:
+    def parse_logfile(outfile: os.PathLike) -> Optional[float]:
         """parse a DOCK log file for the scores of the conformations
 
         Parameters
@@ -269,7 +287,7 @@ class DOCKRunner(DockingRunner):
 
     @staticmethod
     def prepare_input_file(
-        ligand_file: Union[str, Path],
+        ligand_file: os.PathLike,
         sph_file: str,
         grid_prefix: str,
         name: Optional[str] = None,
